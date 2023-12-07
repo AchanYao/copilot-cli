@@ -5,7 +5,7 @@ use clap::{App, Arg};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Number};
-use std::fs;
+use std::{env, fs};
 use std::io::Write;
 use std::path::PathBuf;
 use dirs;
@@ -17,7 +17,8 @@ struct Config {
     openai_token: String,
     base_url: String,
     max_token: Number,
-    model: String
+    model: String,
+    default_shell: Option<String>
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,9 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get_matches();
 
     let query = matches.value_of("query").unwrap();
-    let config = load_or_create_config()?;
-    let system_info = get_system_info()?;
-    let response = ask_openai(config, query, &system_info)?;
+    let response = ask_openai(query)?;
 
     println!("{}", response);
     Ok(())
@@ -66,6 +65,7 @@ fn create_default_config(config_path: &PathBuf) -> Result<(), Box<dyn std::error
         base_url: String::from("https://api.openai.com/v1"),
         max_token: Number::from(1000),
         model: "gpt-3.5-turbo".to_string(),
+        default_shell: None,
     };
     let config_str = serde_json::to_string_pretty(&default_config)?;
     fs::File::create(config_path)?.write_all(config_str.as_bytes())?;
@@ -76,14 +76,54 @@ fn create_default_config(config_path: &PathBuf) -> Result<(), Box<dyn std::error
 }
 
 fn get_system_info() -> Result<String, Box<dyn std::error::Error>> {
+    let config = load_or_create_config()?;
+
     let os_type = sys_info::os_type()?;
     let os_release = sys_info::os_release()?;
-    let terminal = std::env::var("TERM").unwrap_or_else(|_| "unknown".into());
+
+    let terminal = match config.default_shell {
+        None => { get_terminal_name() }
+        Some(ref s) => {
+            if s.is_empty() {
+                get_terminal_name()
+            } else {
+                s.to_string()
+            }
+        }
+    };
 
     Ok(format!("Operating System [{} {}], Terminal Environment [{}]", os_type, os_release, terminal))
 }
 
-fn ask_openai(config: Config, query: &str, system_info: &str) -> Result<String, Box<dyn std::error::Error>> {
+fn get_terminal_name() -> String {
+    let shell = if let Ok(shell) = env::var("SHELL") {
+        if shell.contains("/bash") {
+            "bash"
+        } else if shell.contains("/zsh") {
+            "zsh"
+        } else {
+            "other shell"
+        }
+    } else if env::var("PSModulePath").is_ok() {
+        "PowerShell"
+    } else if let Ok(comspec) = env::var("COMSPEC") {
+        if comspec.to_lowercase().ends_with("cmd.exe") {
+            "cmd"
+        } else {
+            "other command processor"
+        }
+    } else {
+        "unknown"
+    };
+
+    return shell.to_string()
+}
+
+fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let config = load_or_create_config()?;
+
+    let system_info = get_system_info()?;
+
     let client = reqwest::blocking::Client::new();
     let mut list = LinkedList::new();
 
