@@ -1,25 +1,17 @@
 mod request_body;
+mod runtime_config;
 
 use std::collections::LinkedList;
 use clap::{App, Arg};
 use reqwest;
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Number};
+use serde_json::json;
 use std::{env, fs};
 use std::io::Write;
 use std::path::PathBuf;
 use dirs;
 use sys_info;
 use crate::request_body::{Message, OpenAiRequestBody};
-
-#[derive(Serialize, Deserialize)]
-struct Config {
-    openai_token: String,
-    base_url: String,
-    max_token: Number,
-    model: String,
-    default_shell: Option<String>
-}
+use crate::runtime_config::GLOBAL_CONFIG;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("Copilot CLI")
@@ -34,13 +26,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get_matches();
 
     let query = matches.value_of("query").unwrap();
+
+    // load config
+    load_or_create_config()?;
+
     let response = ask_openai(query)?;
 
     println!("{}", response);
     Ok(())
 }
 
-fn load_or_create_config() -> Result<Config, Box<dyn std::error::Error>> {
+fn load_or_create_config() -> Result<(), Box<dyn std::error::Error>> {
     let config_path = dirs::home_dir()
         .ok_or("Could not find home directory")?
         .join(".copilot_cli_config.json");
@@ -50,24 +46,19 @@ fn load_or_create_config() -> Result<Config, Box<dyn std::error::Error>> {
     }
 
     let config_str = fs::read_to_string(config_path)?;
-    let config: Config = serde_json::from_str(&config_str)?;
+    let mut config = GLOBAL_CONFIG.write().unwrap();
+    config.copy_from_json(config_str);
 
-    if config.openai_token.is_empty() {
+    if config.openai_token().is_empty() {
         return Err("OpenAI token is missing in the config file. Please add your OpenAI token to the '.copilot_cli_config.json' file in your home directory.".into());
     }
 
-    Ok(config)
+    Ok(())
 }
 
 fn create_default_config(config_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-    let default_config = Config {
-        openai_token: String::new(),
-        base_url: String::from("https://api.openai.com/v1"),
-        max_token: Number::from(1000),
-        model: "gpt-3.5-turbo".to_string(),
-        default_shell: None,
-    };
-    let config_str = serde_json::to_string_pretty(&default_config)?;
+    let config = GLOBAL_CONFIG.read().unwrap();
+    let config_str = serde_json::to_string_pretty(&*config)?;
     fs::File::create(config_path)?.write_all(config_str.as_bytes())?;
 
     println!("Created default config file at: {:?}", config_path);
@@ -76,51 +67,42 @@ fn create_default_config(config_path: &PathBuf) -> Result<(), Box<dyn std::error
 }
 
 fn get_system_info() -> Result<String, Box<dyn std::error::Error>> {
-    let config = load_or_create_config()?;
-
     let os_type = sys_info::os_type()?;
     let os_release = sys_info::os_release()?;
 
-    let terminal = match config.default_shell {
-        None => { get_terminal_name() }
-        Some(ref s) => {
-            if s.is_empty() {
-                get_terminal_name()
-            } else {
-                s.to_string()
-            }
-        }
-    };
+    let config = GLOBAL_CONFIG.read().unwrap();
+    let terminal = get_terminal_name()
+        .unwrap_or(config.default_shell());
 
     Ok(format!("Operating System [{} {}], Terminal Environment [{}]", os_type, os_release, terminal))
 }
 
-fn get_terminal_name() -> String {
+fn get_terminal_name() -> Option<String> {
     let shell = if let Ok(shell) = env::var("SHELL") {
         if shell.contains("/bash") {
-            "bash"
+            Some("bash")
         } else if shell.contains("/zsh") {
-            "zsh"
+            Some("zsh")
         } else {
-            "other shell"
+            None
         }
     } else if env::var("PSModulePath").is_ok() {
-        "PowerShell"
+        Some("PowerShell")
     } else if let Ok(comspec) = env::var("COMSPEC") {
         if comspec.to_lowercase().ends_with("cmd.exe") {
-            "cmd"
+            Some("cmd")
         } else {
-            "other command processor"
+            None
         }
     } else {
-        "unknown"
+        None
     };
 
-    return shell.to_string()
+    return shell.map(|s| s.to_string());
 }
 
 fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let config = load_or_create_config()?;
+    let config = &GLOBAL_CONFIG.read().unwrap();
 
     let system_info = get_system_info()?;
 
@@ -129,15 +111,7 @@ fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
 
     let system_message = Message {
         role: "system".to_string(),
-        content: format!("Context: {}. Goal: To assist users in accomplishing tasks through command line instructions and provide explanations.
-Please format the response with a clear separation between the command and the explanation, using the following structure:
-Command:
-[The command line instruction]
-
-Explanation:
-[A step-by-step explanation of what the command does and how it achieves the user's goal.]
-Ensure there is a blank line between the 'Command:' and 'Explanation:' sections.
-", system_info)
+        content: std::fmt::format(format_args!("{}\n{}", system_info, config.system_prompt()))
     };
     list.push_back(system_message);
 
@@ -148,11 +122,12 @@ Ensure there is a blank line between the 'Command:' and 'Explanation:' sections.
     list.push_back(user_message);
 
     let body = OpenAiRequestBody {
-        model: config.model,
+        model: config.model(),
         messages: list,
+        max_tokens: config.max_tokens(),
     };
-    let response = client.post(config.base_url + "/chat/completions")
-        .bearer_auth(config.openai_token)
+    let response = client.post(config.base_url() + "/chat/completions")
+        .bearer_auth(config.openai_token())
         .json(&json!(body))
         .send()?
         .json::<serde_json::Value>()?;
