@@ -4,6 +4,10 @@ on:
   push:
     branches: [ "main" ]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   build_and_release:
     runs-on: ${{ matrix.os }}
@@ -39,12 +43,12 @@ jobs:
       uses: google-github-actions/release-please-action@v4
       id: release-please
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.RELEASE_TOKEN }}
         release-type: 'rust'
 
     - name: Upload Release Asset
       if: ${{ steps.release-please.outputs.release_created }}
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       run:
-        gh release upload ${{ matrix.asset_name }}-${{ matrix.os }}-${{ steps.release.outputs.tag_name }} ./target/${{ matrix.target }}/release/${{ matrix.asset_name }} --clobber
+        gh release upload ${{ matrix.asset_name }}-${{ matrix.os }}-${{ steps.release-please.outputs.tag_name }} ./target/${{ matrix.target }}/release/${{ matrix.asset_name }} --clobber
