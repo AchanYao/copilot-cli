@@ -3,8 +3,6 @@ name: Rust Release
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build_and_release:
@@ -44,23 +42,10 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         release-type: 'rust'
 
-    - name: Create GitHub Release
-      if: ${{ steps.release-please.outputs.release_created }}
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.release-please.outputs.tag }}
-        release_name: ${{ steps.release-please.outputs.release_name }}
-        body: ${{ steps.release-please.outputs.body }}
-
     - name: Upload Release Asset
-      if: startsWith(github.ref, 'refs/tags/')
+      if: ${{ steps.release-please.outputs.release_created }}
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./target/${{ matrix.target }}/release/${{ matrix.asset_name }}
-        asset_name: ${{ matrix.asset_name }}-${{ matrix.os }}-${{ env.RELEASE_VERSION }}
-        asset_content_type: application/octet-stream
+      run:
+        gh release upload ${{ matrix.asset_name }}-${{ matrix.os }}-${{ steps.release.outputs.tag_name }} ./target/${{ matrix.target }}/release/${{ matrix.asset_name }} --clobber
