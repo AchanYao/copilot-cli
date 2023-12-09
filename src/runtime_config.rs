@@ -86,6 +86,20 @@ impl RuntimeConfig {
             self.max_tokens = config.max_tokens;
         }
     }
+
+    /**
+     * Returns a new RuntimeConfig with default values.
+     */
+    pub fn default() -> RuntimeConfig {
+        RuntimeConfig {
+            openai_token: "".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+            max_tokens: 1000,
+            model: "gpt-3.5-turbo".to_string(),
+            default_shell: None,
+            system_prompt: "".to_string()
+        }
+    }
 }
 
 pub static GLOBAL_CONFIG: Lazy<RwLock<RuntimeConfig>> = Lazy::new(|| {

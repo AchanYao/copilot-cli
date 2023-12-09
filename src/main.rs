@@ -57,8 +57,8 @@ fn load_or_create_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn create_default_config(config_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-    let config = GLOBAL_CONFIG.read().unwrap();
-    let config_str = serde_json::to_string_pretty(&*config)?;
+    let config = RuntimeConfig::default();
+    let config_str = serde_json::to_string_pretty(&config)?;
     fs::File::create(config_path)?.write_all(config_str.as_bytes())?;
 
     println!("Created default config file at: {:?}", config_path);
