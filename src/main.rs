@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use dirs;
 use sys_info;
 use crate::request_body::{Message, OpenAiRequestBody};
-use crate::runtime_config::GLOBAL_CONFIG;
+use crate::runtime_config::{GLOBAL_CONFIG, RuntimeConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("Copilot CLI")
@@ -109,9 +109,11 @@ fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
     let client = reqwest::blocking::Client::new();
     let mut list = LinkedList::new();
 
+    let system_info_explanation = format!("Operating System is reliable and should be used as the default. Terminal Environment is determined by the program and may not match user expectations. If the user specifies a different terminal within their request, prioritize the user's choice. For OS-specific queries, ignore user preferences for an OS different from [OS], except when the question pertains to different distributions of the same OS, in which case use discretion. Goal: To provide users with executable command line instructions for the current environment and terminal, and offer explanations that are easily readable, using line breaks or tabs to enhance readability. If the user's language is clear, respond in kind; otherwise, default to English.");
+
     let system_message = Message {
         role: "system".to_string(),
-        content: std::fmt::format(format_args!("{}\n{}", system_info, config.system_prompt()))
+        content: std::fmt::format(format_args!("{}\n{}\n{}", system_info, system_info_explanation, config.system_prompt()))
     };
     list.push_back(system_message);
 
