@@ -38,3 +38,7 @@ You can modify the config file to change the default settings. Config file field
 # Enjoying
 
 ![demo](./docs/images/demo.gif)
+
+# Why This Project
+
+The inspiration for this project comes from Microsoft's [Copilot for CLI](https://githubnext.com/projects/copilot-cli/). Why don't I just use Microsoft's version? Because I haven't been able to obtain beta access to it.
