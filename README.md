@@ -1,5 +1,7 @@
 # Copilot Cli
 
+[中文文档看这里](./docs/README_zh.md)
+
 > Copilot for Command Line Interface by OpenAI.
 
 A command line tool that can help you generate commands by OpenAI's GPT model.
