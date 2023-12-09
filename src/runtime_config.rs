@@ -115,8 +115,8 @@ pub static GLOBAL_CONFIG: Lazy<RwLock<RuntimeConfig>> = Lazy::new(|| {
             model: "gpt-3.5-turbo".to_string(),
             default_shell: None,
             system_prompt: "
-Goal: To assist users in accomplishing tasks through command line instructions and provide explanations.
-Please format the response with a clear separation between the command and the explanation, using the following structure:
+Goal: To provide users with executable command line instructions for the current environment and terminal, and offer clear explanations of the commands without describing user operation steps. The explanation should be concise and formatted for easy readability in the console, using line breaks or tabs to enhance readability. If the user's language is clear, respond in kind; otherwise, default to English.
+Please format the response with a clear separation between the command and the explanation. The response should not contain Markdown formatting and should be structured as follows:
 Command:
 [The command line instruction that is executable in the current environment and terminal]
 
