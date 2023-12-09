@@ -17,10 +17,10 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            asset_name: copilot-cli
+            asset_name: ubuntu-copilot-cli
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            asset_name: copilot-cli.exe
+            asset_name: windows-copilot-cli.exe
 
     steps:
     - uses: actions/checkout@v3
@@ -51,4 +51,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       run:
-        gh release upload ${{ matrix.asset_name }}-${{ matrix.os }}-${{ steps.release-please.outputs.tag_name }} ./target/${{ matrix.target }}/release/${{ matrix.asset_name }} --clobber
+        gh release upload ${{ steps.release-please.outputs.tag_name }} ./target/${{ matrix.target }}/release/${{ matrix.asset_name }} --clobber
