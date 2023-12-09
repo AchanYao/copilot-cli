@@ -47,4 +47,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       run:
-        gh release upload ${{ matrix.asset_name }}-${{ matrix.os }}-${{ steps.release.outputs.tag_name }} ./target/${{ matrix.target }}/release/${{ matrix.asset_name }} --clobber
+        gh release upload ${{ matrix.asset_name }}-${{ matrix.os }}-${{ steps.release-please.outputs.tag_name }} ./target/${{ matrix.target }}/release/${{ matrix.asset_name }} --clobber
