@@ -6,9 +6,13 @@ use clap::{App, Arg};
 use reqwest;
 use serde_json::json;
 use std::{env, fs};
+use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 use dirs;
+use log::{debug, info, LevelFilter};
+use simplelog::{CombinedLogger, Config, WriteLogger};
 use sys_info;
 use crate::request_body::{Message, OpenAiRequestBody};
 use crate::runtime_config::{GLOBAL_CONFIG, RuntimeConfig};
@@ -23,9 +27,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .required(true)
                 .index(1),
         )
+        .arg(
+            Arg::new("log")
+                .long("log")
+                .help("save a logs file.")
+                .takes_value(false)
+        )
         .get_matches();
 
     let query = matches.value_of("query").unwrap();
+
+    if matches.is_present("log") {
+        setup_logging()?;
+    }
 
     // load config
     load_or_create_config()?;
@@ -36,18 +50,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
+    let start_time = SystemTime::now();
+    let since_the_epoch = start_time.duration_since(UNIX_EPOCH)?;
+    let timestamp = since_the_epoch.as_secs();
+
+    let log_path = env::temp_dir().join(format!("copilot-cli_{}.log", timestamp));
+    let log_file = File::create(&log_path)?;
+
+    CombinedLogger::init(vec![
+        WriteLogger::new(LevelFilter::Debug, Config::default(), log_file),
+    ])?;
+
+    info!("Logging to file: {:?}", log_path);
+
+    println!("Debug mode is on. Log file: {:?}", log_path);
+
+    Ok(())
+}
+
 fn load_or_create_config() -> Result<(), Box<dyn std::error::Error>> {
     let config_path = dirs::home_dir()
         .ok_or("Could not find home directory")?
         .join(".copilot_cli_config.json");
 
     if !config_path.exists() {
+        debug!("Config file does not exist. Creating default config file.");
         create_default_config(&config_path)?;
     }
 
     let config_str = fs::read_to_string(config_path)?;
     let mut config = GLOBAL_CONFIG.write().unwrap();
     config.copy_from_json(config_str);
+
+    debug!("Loaded config: {:?}", config.to_json());
 
     if config.openai_token().is_empty() {
         return Err("OpenAI token is missing in the config file. Please add your OpenAI token to the '.copilot_cli_config.json' file in your home directory.".into());
@@ -73,6 +109,8 @@ fn get_system_info() -> Result<String, Box<dyn std::error::Error>> {
     let config = GLOBAL_CONFIG.read().unwrap();
     let terminal = get_terminal_name()
         .unwrap_or(config.default_shell());
+
+    debug!("OS: {} {}; Terminal: {}", os_type, os_release, terminal);
 
     Ok(format!("Operating System [{} {}], Terminal Environment [{}]", os_type, os_release, terminal))
 }
@@ -128,12 +166,18 @@ fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
         messages: list,
         max_tokens: config.max_tokens(),
     };
+
+    info!("Sending request to OpenAI");
+    debug!("Request body: {:?}", &json!(body));
+
     let response = client.post(config.base_url() + "/chat/completions")
         .bearer_auth(config.openai_token())
         .json(&json!(body))
-        .send()?
-        .json::<serde_json::Value>()?;
+        .send()?;
 
-    let command = response["choices"][0]["message"]["content"].as_str().ok_or("Failed to parse the response from OpenAI")?;
+    debug!("Response: {:?}", response);
+
+    let response_json = response.json::<serde_json::Value>()?;
+    let command = response_json["choices"][0]["message"]["content"].as_str().ok_or("Failed to parse the response from OpenAI")?;
     Ok(command.trim().to_string())
 }

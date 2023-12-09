@@ -87,6 +87,10 @@ impl RuntimeConfig {
         }
     }
 
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
+
     /**
      * Returns a new RuntimeConfig with default values.
      */
