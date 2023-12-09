@@ -19,3 +19,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           release-type: 'rust'
+          target-branch: 'main'
