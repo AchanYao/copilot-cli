@@ -3,7 +3,6 @@ name: Release
 on:
   push:
     tags: [ "*" ]
-    tags-ignore: ["v*.*.*-rc.*"]
 
 jobs:
   build_and_release:
