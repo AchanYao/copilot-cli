@@ -26,14 +26,11 @@ copilot-cli "list all rs files in current directory"
 }
 ```
 
-你可以修改配置文件来改变默认设置，配置文件字段：
+你可以在[这里](https://platform.openai.com/api-keys)申请一个OpenAI API key。
 
-- `openai_token`: 你的openai token
-- `model`: 你想要使用的模型名称，默认是： `gpt-3.5-turbo`
-- `system_prompt`: 使用期间系统提示词
-- `max_tokens`: 生成的最大token数，默认是1000
-- `base_url`: openai api的url，默认是：`https://api.openai.com/v1`
-- `default_shell`: 默认的shell，如果没有设置，它会根据你的当前运行环境来判断
+中国用户可以使用[通义千问](https://help.aliyun.com/zh/dashscope/developer-reference/activate-dashscope-and-create-an-api-key)。
+
+你可以修改配置文件来改变默认设置，更多信息可以看[这里](../src/runtime_config.rs)。
 
 # Enjoying
 
