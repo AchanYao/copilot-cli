@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         setup_logging()?;
     }
 
-    // 显示加载动画
+    // show loading animation
     let pb = ProgressBar::new_spinner();
     pb.set_style(ProgressStyle::default_spinner()
         .tick_strings(&["-", "\\", "|", "/"]) // 或者使用其他字符来自定义动画效果
@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = ask_openai(query).await?;
 
-    // 耗时操作完成，停止加载动画
+    // stop loading animation
     pb.finish_and_clear();
 
     println!("{}", response);
@@ -109,7 +109,7 @@ fn load_or_create_config() -> Result<(), Box<dyn std::error::Error>> {
 fn create_default_config(config_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let config = RuntimeConfig::default();
     let config_str = serde_json::to_string_pretty(&config)?;
-    fs::File::create(config_path)?.write_all(config_str.as_bytes())?;
+    File::create(config_path)?.write_all(config_str.as_bytes())?;
 
     println!("Created default config file at: {:?}", config_path);
     println!("Please add your OpenAI token to the '.copilot_cli_config.json' file in your home directory and rerun the program.");
@@ -193,7 +193,6 @@ async fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
     debug!("Response: {:?}", response);
 
     let response_json = response.json::<serde_json::Value>().await?;
-    debug!("response body {:?}", response_json);
     let command = response_json["choices"][0]["message"]["content"].as_str().ok_or("Failed to parse the response from OpenAI")?;
     Ok(command.trim().to_string())
 }
