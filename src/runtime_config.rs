@@ -1,6 +1,8 @@
+use std::collections::LinkedList;
 use std::sync::RwLock;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use crate::request_body::{AiApiBody, DashScopeRequestBody, Message, OpenAiRequestBody};
 
 #[derive(Serialize, Deserialize)]
 pub struct RuntimeConfig {
@@ -12,6 +14,10 @@ pub struct RuntimeConfig {
      * The base URL to use for the OpenAI API. Default value: https://api.openai.com/v1
      */
     base_url: String,
+    /**
+     * The path to use for the OpenAI API. Default value: /v1/chat/completions
+     */
+    request_path: Option<String>,
     /**
      * The maximum number of tokens to use for the OpenAI API. Default value: 1000
      */
@@ -29,6 +35,12 @@ pub struct RuntimeConfig {
      * The prompt to use for the OpenAI API.
      */
     system_prompt: String,
+
+    /**
+     * The manufacturer of the AI model.
+     * see [AiApiBody](./request_body/struct.AiApiBody.html) for more information.
+     */
+    ai_type: Option<String>,
 }
 
 impl RuntimeConfig {
@@ -40,12 +52,11 @@ impl RuntimeConfig {
         self.base_url.to_string()
     }
 
-    pub fn max_tokens(&self) -> u16 {
-        self.max_tokens
-    }
-
-    pub fn model(&self) -> String {
-        self.model.to_string()
+    pub fn request_path(&self) -> String {
+        match &self.request_path {
+            Some(path) => path.to_string(),
+            None => "/v1/chat/completions".to_string()
+        }
     }
 
     pub fn default_shell(&self) -> String {
@@ -64,6 +75,10 @@ impl RuntimeConfig {
         let config: RuntimeConfig = serde_json::from_str(&json).unwrap();
         if !config.base_url.is_empty() {
             self.base_url = config.base_url.clone();
+        }
+
+        if !config.request_path.is_none() {
+            self.request_path = config.request_path.clone();
         }
 
         if !config.openai_token.is_empty() {
@@ -85,6 +100,50 @@ impl RuntimeConfig {
         if config.max_tokens > 0 {
             self.max_tokens = config.max_tokens;
         }
+
+        if !config.ai_type.is_none() {
+            self.ai_type = config.ai_type.clone();
+        }
+    }
+
+    pub fn create_request_body(&self, messages: LinkedList<Message>) -> AiApiBody {
+        let type_string = &self.ai_type;
+        match type_string {
+            Some(type_string) => {
+                match type_string.as_str() {
+                    "DashScope" => {
+                        let request_body = AiApiBody::DashScope(
+                            DashScopeRequestBody::new(
+                                self.model.clone(),
+                                self.max_tokens,
+                                messages,
+                            )
+                        );
+                        request_body
+                    },
+                    _ => {
+                        let request_body = AiApiBody::OpenAI(
+                            OpenAiRequestBody {
+                                model: self.model.clone(),
+                                max_tokens: self.max_tokens,
+                                messages,
+                            }
+                        );
+                        request_body
+                    }
+                }
+            },
+            None => {
+                let request_body = AiApiBody::OpenAI(
+                    OpenAiRequestBody {
+                        model: self.model.clone(),
+                        max_tokens: self.max_tokens,
+                        messages,
+                    }
+                );
+                request_body
+            }
+        }
     }
 
     pub fn to_json(&self) -> String {
@@ -97,11 +156,13 @@ impl RuntimeConfig {
     pub fn default() -> RuntimeConfig {
         RuntimeConfig {
             openai_token: "".to_string(),
-            base_url: "https://api.openai.com/v1".to_string(),
+            base_url: "https://api.openai.com".to_string(),
+            request_path: None,
             max_tokens: 1000,
             model: "gpt-3.5-turbo".to_string(),
             default_shell: None,
-            system_prompt: "".to_string()
+            system_prompt: "".to_string(),
+            ai_type: None,
         }
     }
 }
@@ -110,7 +171,8 @@ pub static GLOBAL_CONFIG: Lazy<RwLock<RuntimeConfig>> = Lazy::new(|| {
     RwLock::new(
         RuntimeConfig {
             openai_token: "".to_string(),
-            base_url: "https://api.openai.com/v1".to_string(),
+            base_url: "https://api.openai.com".to_string(),
+            request_path: None,
             max_tokens: 1000,
             model: "gpt-3.5-turbo".to_string(),
             default_shell: None,
@@ -126,6 +188,7 @@ Explanation:
 
 Ensure there is a blank line between the 'Command:' and 'Explanation:' sections.
     ".to_string(),
+            ai_type: None,
         }
     )
 });

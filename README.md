@@ -15,9 +15,9 @@ cargo run "list all rs files in current directory"
 or
 
 ```bash
-# if you have installed it, you can use copilot_cli directly
+# if you have installed it, you can use copilot-cli directly
 # maybe you need to add it to your PATH
-copilot_cli "list all rs files in current directory"
+copilot-cli "list all rs files in current directory"
 ```
 
 When first run, it will create a `.copilot_cli_config.json` config file in your home directory. You need to fill in your OpenAI API key in it.
@@ -28,14 +28,39 @@ When first run, it will create a `.copilot_cli_config.json` config file in your 
 }
 ```
 
-You can modify the config file to change the default settings. Config file fields:
+You can apply for an OpenAI API key [here](https://platform.openai.com/api-keys).
 
-- `openai_token`: your openai token
-- `model`: the model you want to use, default is `gpt-3.5-turbo`
-- `system_prompt`: the prompt you want to use
-- `max_tokens`: the max tokens you want to generate, default is 1000
-- `base_url`: the base url of openai api, default is `https://api.openai.com/v1`
-- `default_shell`: the default shell you want to use, if not set, it will judge by your os, if your os is windows, it will use `cmd`, else it will use `bash`
+Chinese users can use [通义千问](https://help.aliyun.com/zh/dashscope/developer-reference/activate-dashscope-and-create-an-api-key).
+
+You can modify the config file to change the default settings. More info you can see [here](src/runtime_config.rs).
+
+## set alias
+
+You can set alias for `copilot-cli` to make it easier to use.
+
+In `bash` (Mac or Linux):
+
+```bash
+# open your bashrc file
+nano ~/.bashrc
+# add this line to the end of the file
+alias ??="copilot-cli"
+# save and exit
+
+# execute this command to make it work
+source ~/.bashrc
+# then you can use copilot-cli by typing ??
+```
+
+In `PowerShell` (Windows):
+
+```powershell
+# open your PowerShell profile file
+notepad $PROFILE
+# add this line to the end of the file
+Set-Alias -Name ?? -Value copilot-cli
+# save and exit
+```
 
 # Enjoying
 

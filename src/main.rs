@@ -4,7 +4,6 @@ mod runtime_config;
 use std::collections::LinkedList;
 use clap::{App, Arg, crate_name, crate_version};
 use reqwest;
-use serde_json::json;
 use std::{env, fs};
 use std::fs::File;
 use std::io::Write;
@@ -15,7 +14,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, info, LevelFilter};
 use simplelog::{CombinedLogger, Config, WriteLogger};
 use sys_info;
-use crate::request_body::{Message, OpenAiRequestBody};
+use crate::request_body::{AiRequestBody, Message};
 use crate::runtime_config::{GLOBAL_CONFIG, RuntimeConfig};
 
 #[tokio::main]
@@ -175,24 +174,23 @@ async fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
     };
     list.push_back(user_message);
 
-    let body = OpenAiRequestBody {
-        model: config.model(),
-        messages: list,
-        max_tokens: config.max_tokens(),
-    };
+    let body = config.create_request_body(list);
+    let value = body.to_json();
 
     info!("Sending request to OpenAI");
-    debug!("Request body: {:?}", &json!(body));
+    debug!("Request body: {:?}", value);
 
-    let response = client.post(config.base_url() + "/chat/completions")
+    let response = client.post(format!("{}{}", config.base_url(), config.request_path()))
         .bearer_auth(config.openai_token())
-        .json(&json!(body))
+        .json(&value)
         .send()
         .await?;
 
     debug!("Response: {:?}", response);
 
     let response_json = response.json::<serde_json::Value>().await?;
+    debug!("Response JSON: {:?}", response_json);
+    let response_json = body.parse_response(response_json);
     let command = response_json["choices"][0]["message"]["content"].as_str().ok_or("Failed to parse the response from OpenAI")?;
     Ok(command.trim().to_string())
 }
