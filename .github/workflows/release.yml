@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags: [ "*" ]
+
+jobs:
+  build_and_release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset_name: copilot-cli
+            alias: linux
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_name: copilot-cli.exe
+            alias: windows
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset_name: copilot-cli
+            alias: macos
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Build Release
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Run tests
+        run: cargo test --verbose --target ${{ matrix.target }}
+
+      - name: Upload Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run:
+          gh release upload ${{ github.ref }} ./target/${{ matrix.target }}/release/${{ matrix.asset_name }} --clobber
