@@ -11,15 +11,13 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use dirs;
-use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, info, LevelFilter};
 use simplelog::{CombinedLogger, Config, WriteLogger};
 use sys_info;
 use crate::request_body::{Message, OpenAiRequestBody};
 use crate::runtime_config::{GLOBAL_CONFIG, RuntimeConfig};
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("Copilot CLI")
         .version("0.1.0")
         .about("Interacts with OpenAI's API to provide shell command suggestions.")
@@ -43,22 +41,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         setup_logging()?;
     }
 
-    // 显示加载动画
-    let pb = ProgressBar::new_spinner();
-    pb.set_style(ProgressStyle::default_spinner()
-        .tick_strings(&["-", "\\", "|", "/"]) // 或者使用其他字符来自定义动画效果
-        .template("{spinner} {msg}"));
-
-    pb.enable_steady_tick(100); // 设置动画的更新速度（每100毫秒更新一次）
-    pb.set_message("Loading...");
-
     // load config
     load_or_create_config()?;
 
-    let response = ask_openai(query).await?;
-
-    // 耗时操作完成，停止加载动画
-    pb.finish_and_clear();
+    let response = ask_openai(query)?;
 
     println!("{}", response);
     Ok(())
@@ -153,12 +139,12 @@ fn get_terminal_name() -> Option<String> {
     return shell.map(|s| s.to_string());
 }
 
-async fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
+fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
     let config = &GLOBAL_CONFIG.read().unwrap();
 
     let system_info = get_system_info()?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::blocking::Client::new();
     let mut list = LinkedList::new();
 
     let system_info_explanation = format!("Operating System with version obtained via the sys_info library is reliable and should be used as the default. Terminal Environment is determined by the program and may not match user expectations. If the user specifies a different terminal within their request, prioritize the user's choice. For OS-specific queries, ignore user preferences for an OS different from [OS], except when the question pertains to different distributions of the same OS, in which case use discretion. Goal: To provide users with executable command line instructions for the current environment and terminal, and offer explanations that are easily readable, using line breaks or tabs to enhance readability. If the user's language is clear, respond in kind; otherwise, default to English.");
@@ -187,13 +173,11 @@ async fn ask_openai(query: &str) -> Result<String, Box<dyn std::error::Error>> {
     let response = client.post(config.base_url() + "/chat/completions")
         .bearer_auth(config.openai_token())
         .json(&json!(body))
-        .send()
-        .await?;
+        .send()?;
 
     debug!("Response: {:?}", response);
 
-    let response_json = response.json::<serde_json::Value>().await?;
-    debug!("response body {:?}", response_json);
+    let response_json = response.json::<serde_json::Value>()?;
     let command = response_json["choices"][0]["message"]["content"].as_str().ok_or("Failed to parse the response from OpenAI")?;
     Ok(command.trim().to_string())
 }
