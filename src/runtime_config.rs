@@ -86,6 +86,24 @@ impl RuntimeConfig {
             self.max_tokens = config.max_tokens;
         }
     }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
+
+    /**
+     * Returns a new RuntimeConfig with default values.
+     */
+    pub fn default() -> RuntimeConfig {
+        RuntimeConfig {
+            openai_token: "".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+            max_tokens: 1000,
+            model: "gpt-3.5-turbo".to_string(),
+            default_shell: None,
+            system_prompt: "".to_string()
+        }
+    }
 }
 
 pub static GLOBAL_CONFIG: Lazy<RwLock<RuntimeConfig>> = Lazy::new(|| {
@@ -96,14 +114,17 @@ pub static GLOBAL_CONFIG: Lazy<RwLock<RuntimeConfig>> = Lazy::new(|| {
             max_tokens: 1000,
             model: "gpt-3.5-turbo".to_string(),
             default_shell: None,
-            system_prompt: "Goal: To assist users in accomplishing tasks through command line instructions and provide explanations.
-    Please format the response with a clear separation between the command and the explanation, using the following structure:
-    Command:
-    [The command line instruction]
+            system_prompt: "
+If the terminal is capable of displaying emoji, they may be used appropriately at the beginning or end of lines in the Explanation section to enhance readability and engagement.
+Goal: To provide users with executable command line instructions for the current environment and terminal, and offer clear explanations of the commands without describing user operation steps. The explanation should be concise and formatted for easy readability in the console, using line breaks or tabs to enhance readability. If the user's language is clear, respond in kind; otherwise, default to English.
+Please format the response with a clear separation between the command and the explanation. The response should not contain Markdown formatting and should be structured as follows:
+Command:
+[The command line instruction that is executable in the current environment and terminal]
 
-    Explanation:
-    [A step-by-step explanation of what the command does and how it achieves the user's goal.]
-    Ensure there is a blank line between the 'Command:' and 'Explanation:' sections.
+Explanation:
+[A step-by-step explanation in the user's language, if discernible, or in English. Use line breaks and tabs to avoid overly long text and improve readability.]
+
+Ensure there is a blank line between the 'Command:' and 'Explanation:' sections.
     ".to_string(),
         }
     )
