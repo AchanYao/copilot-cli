@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/AchanYao/copilot-cli/compare/v0.1.2...v0.1.3) (2023-12-10)
+
+
+### Bug Fixes
+
+* **ci:** release yml error ([07004ad](https://github.com/AchanYao/copilot-cli/commit/07004ad6b185ce2e9eca19d0e4128b3c980cf89a))
+* **ci:** release yml error ([0298b73](https://github.com/AchanYao/copilot-cli/commit/0298b731c01370bf2ea4d53fd1ed3ef2cb4fc7f3))
+
 ## [0.1.2](https://github.com/AchanYao/copilot-cli/compare/v0.1.1...v0.1.2) (2023-12-09)
 
 
