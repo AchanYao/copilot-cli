@@ -115,6 +115,7 @@ pub static GLOBAL_CONFIG: Lazy<RwLock<RuntimeConfig>> = Lazy::new(|| {
             model: "gpt-3.5-turbo".to_string(),
             default_shell: None,
             system_prompt: "
+If the terminal is capable of displaying emoji, they may be used appropriately at the beginning or end of lines in the Explanation section to enhance readability and engagement.
 Goal: To provide users with executable command line instructions for the current environment and terminal, and offer clear explanations of the commands without describing user operation steps. The explanation should be concise and formatted for easy readability in the console, using line breaks or tabs to enhance readability. If the user's language is clear, respond in kind; otherwise, default to English.
 Please format the response with a clear separation between the command and the explanation. The response should not contain Markdown formatting and should be structured as follows:
 Command:
