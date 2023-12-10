@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/AchanYao/copilot-cli/compare/v0.1.2...v1.0.0) (2023-12-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* add loading progress bar
+
+### fact
+
+* add loading progress bar ([e756452](https://github.com/AchanYao/copilot-cli/commit/e75645219f400e7a32d13fa4419a9fddae0c65fc))
+
 ## [0.1.2](https://github.com/AchanYao/copilot-cli/compare/v0.1.1...v0.1.2) (2023-12-09)
 
 
