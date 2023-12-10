@@ -2,7 +2,7 @@ mod request_body;
 mod runtime_config;
 
 use std::collections::LinkedList;
-use clap::{App, Arg};
+use clap::{App, Arg, crate_name, crate_version};
 use reqwest;
 use serde_json::json;
 use std::{env, fs};
@@ -20,8 +20,8 @@ use crate::runtime_config::{GLOBAL_CONFIG, RuntimeConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = App::new("Copilot CLI")
-        .version("0.1.0")
+    let matches = App::new(crate_name!())
+        .version(crate_version!())
         .about("Interacts with OpenAI's API to provide shell command suggestions.")
         .arg(
             Arg::new("query")
