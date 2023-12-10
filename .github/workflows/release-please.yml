@@ -1,23 +1,20 @@
-name: Auto create pr from dev
+name: Auto create pr
+
+on:
+  push:
+    branches: [ "main" ]
 
 permissions:
   contents: write
   pull-requests: write
 
-on:
-  push:
-    branches:
-      - dev
-    paths-ignore: ['docs/**', '**.md']
-
 jobs:
-  release-please:
+  please_release:
     runs-on: ubuntu-latest
     steps:
-      - name: Release Please
-        id: release-please
-        uses: google-github-actions/release-please-action@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          release-type: 'rust'
-          target-branch: 'main'
+    - name: Set up Release Please
+      uses: google-github-actions/release-please-action@v4
+      id: release-please
+      with:
+        token: ${{ secrets.RELEASE_TOKEN }}
+        release-type: 'rust'
