@@ -34,6 +34,8 @@ Chinese users can use [通义千问](https://help.aliyun.com/zh/dashscope/develo
 
 You can modify the config file to change the default settings. More info you can see [here](src/runtime_config.rs).
 
+About switching between OpenAI and Tongyi Qianwen, see [here](docs/en/ConfigFile.md).
+
 ## set alias
 
 You can set alias for `copilot-cli` to make it easier to use.

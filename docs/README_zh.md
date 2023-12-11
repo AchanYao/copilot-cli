@@ -32,6 +32,8 @@ copilot-cli "list all rs files in current directory"
 
 你可以修改配置文件来改变默认设置，更多信息可以看[这里](../src/runtime_config.rs)。
 
+关于如何在OpenAI和通义千问之间切换，可以看[这里](zh/ConfigFile.md)。
+
 # Enjoying
 
 ![demo](./images/demo.gif)
